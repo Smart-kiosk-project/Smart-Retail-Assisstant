@@ -2,6 +2,7 @@ import { useEffect, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '../features/avatar/components/Avatar'
 import VoiceInput from '../features/avatar/components/VoiceInput'
+import ParticleBackground from '../features/avatar/components/ParticleBackground'
 import { useAvatarState } from '../features/avatar/hooks/useAvatarState'
 import { useVoiceInput } from '../features/avatar/hooks/useVoiceInput'
 import '../styles/avatar.css'
@@ -10,10 +11,10 @@ const BILLING_KEYWORDS = ['billing', 'bill', 'pay', 'payment', 'checkout', 'cart
 
 export default function AvatarPage() {
   const navigate = useNavigate()
-  const { state, setIdle, setGreeting, setListening, setThinking, setTalking } =
-    useAvatarState()
+  const { state, setIdle, setGreeting, setListening, setThinking, setTalking } = useAvatarState()
   const [message, setMessage] = useState('Hi! I am Priya. How can I help you today?')
   const [transcript, setTranscript] = useState('')
+  const [showTranscript, setShowTranscript] = useState(false)
 
   useEffect(() => {
     setGreeting()
@@ -23,6 +24,7 @@ export default function AvatarPage() {
 
   const handleUserSpeech = useCallback(
     (text: string) => {
+      setShowTranscript(true)
       setTranscript(`"${text}"`)
       setThinking()
       setMessage('Let me check that for you...')
@@ -41,6 +43,7 @@ export default function AvatarPage() {
           setTimeout(() => {
             setIdle()
             setTranscript('')
+            setShowTranscript(false)
           }, 3000)
         }
       }, 1500)
@@ -48,89 +51,70 @@ export default function AvatarPage() {
     [navigate, setThinking, setTalking, setIdle]
   )
 
-  const { isListening, startListening, stopListening } =
-    useVoiceInput(handleUserSpeech)
+  const { isListening, startListening, stopListening } = useVoiceInput(handleUserSpeech)
 
   const handleMicClick = () => {
     setListening()
     setMessage('Listening...')
     setTranscript('')
+    setShowTranscript(false)
     startListening()
   }
 
   return (
-    <div className="avatar-page">
+    <div className="kiosk-root">
 
-      {/* Header */}
-      <div className="avatar-header">
-        <div className="avatar-header-left">
-          <div className="avatar-logo-box">✦</div>
+      {/* Three.js background — layer 0 */}
+      <ParticleBackground avatarState={state} />
+
+      {/* Header — layer 1 */}
+      <header className="kiosk-header">
+        <div className="kiosk-header-left">
+          <div className="kiosk-logo">✦</div>
           <div>
-            <div className="avatar-header-title">Priya — AI Assistant</div>
-            <div className="avatar-header-sub">Smart Retail Kiosk</div>
+            <div className="kiosk-title">Priya — AI Assistant</div>
+            <div className="kiosk-subtitle">Smart Retail Kiosk</div>
           </div>
         </div>
-        <div className="avatar-header-right">
-          <div className="avatar-status-pill">
-            <span className="avatar-status-dot" />
-            <span className="avatar-status-text">Online</span>
+        <div className="kiosk-header-right">
+          <div className="kiosk-status-pill">
+            <span className="kiosk-status-dot" />
+            <span className="kiosk-status-text">Online</span>
           </div>
-          <span className="avatar-terminal-badge">Kiosk 01</span>
+          <span className="kiosk-badge">Kiosk 01</span>
         </div>
+      </header>
+
+      {/* Avatar — full screen center, layer 1 */}
+      <div className="kiosk-avatar-area">
+        <Avatar state={state} />
       </div>
 
-      {/* Body */}
-      <div className="avatar-body">
+      {/* Bottom overlay — layer 2 */}
+      <div className="kiosk-overlay">
 
-        {/* Left — Avatar */}
-        <div className="avatar-left-panel">
-          <div className="avatar-wrapper">
-            <Avatar state={state} />
-            <div className="blink-overlay" />
-          </div>
+        {/* State chip */}
+        <div className="kiosk-state-chip">
+          <span className="kiosk-state-dot" data-state={state} />
+          <span className="kiosk-state-label">{state}</span>
         </div>
 
-        {/* Right — Controls */}
-        <div className="avatar-right-panel">
-          <div className="avatar-right-inner">
-
-            {/* State indicator */}
-            <span className="avatar-section-label">Assistant status</span>
-            <div className="avatar-state-card">
-              <span className="avatar-state-label">Current state</span>
-              <span className="avatar-state-value">{state}</span>
-            </div>
-
-            <div className="avatar-divider" />
-
-            {/* Chat area */}
-            <span className="avatar-section-label">Response</span>
-            <div className="avatar-chat-area">
-              <div className="avatar-chat-bubble">
-                <p>{message}</p>
-              </div>
-            </div>
-
-            {/* Transcript */}
-            <p className="avatar-transcript">{transcript}</p>
-
-            <div className="avatar-divider" />
-
-            {/* Voice input */}
-            <span className="avatar-section-label">Voice input</span>
-            <VoiceInput
-              isListening={isListening}
-              onStart={handleMicClick}
-              onStop={stopListening}
-            />
-
-            {/* Footer */}
-            <div className="avatar-footer-hint">
-              🔒 Voice processed locally · Say "billing" to proceed
-            </div>
-
-          </div>
+        {/* Chat bubble */}
+        <div className="kiosk-chat-bubble">
+          <p className="kiosk-chat-text">{message}</p>
+          {showTranscript && transcript && (
+            <p className="kiosk-transcript">{transcript}</p>
+          )}
         </div>
+
+        {/* Mic button */}
+        <VoiceInput
+          isListening={isListening}
+          onStart={handleMicClick}
+          onStop={stopListening}
+        />
+
+        <p className="kiosk-footer-hint">🔒 Voice processed locally · Say "billing" to proceed</p>
       </div>
     </div>
   )
